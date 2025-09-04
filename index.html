@@ -1,0 +1,1529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Higher Market OS</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=MS+Sans+Serif:wght@400;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'MS Sans Serif', sans-serif;
+            font-size: 11px;
+            overflow: hidden;
+            background: #008080;
+            position: relative;
+            height: 100vh;
+            user-select: none;
+        }
+
+        /* Boot Screen */
+        .boot-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 1s ease-out;
+        }
+
+        .boot-text {
+            font-size: 14px;
+            margin: 5px 0;
+            opacity: 0;
+            animation: typeIn 0.5s ease-out forwards;
+        }
+
+        @keyframes typeIn {
+            to { opacity: 1; }
+        }
+
+        /* Desktop */
+        .desktop {
+            width: 100%;
+            height: 100vh;
+            position: relative;
+            background: url('assets/background.jpg') center/cover;
+            display: none;
+        }
+
+        .desktop.loaded {
+            display: block;
+        }
+
+        #background-video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -1;
+            filter: contrast(0.8) brightness(0.7);
+        }
+
+        /* Desktop Icons */
+        .desktop-icons {
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, 80px);
+            grid-gap: 20px;
+            height: calc(100vh - 40px);
+            overflow: hidden;
+        }
+
+        .desktop-icon {
+            width: 80px;
+            height: 80px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            font-size: 10px;
+            text-align: center;
+            padding: 5px;
+            border-radius: 2px;
+            transition: background 0.2s;
+        }
+
+        .desktop-icon:hover {
+            background: rgba(0,0,255,0.3);
+        }
+
+        .desktop-icon img {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 4px;
+            filter: drop-shadow(1px 1px 2px rgba(0,0,0,0.5));
+        }
+
+        /* Taskbar */
+        .taskbar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 40px;
+            background: #c0c0c0;
+            border-top: 2px outset #c0c0c0;
+            display: flex;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .start-button {
+            background: #c0c0c0;
+            border: 2px outset #c0c0c0;
+            padding: 6px 16px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 2px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .start-button:active, .start-button.active {
+            border: 2px inset #c0c0c0;
+        }
+
+        .start-button img {
+            width: 20px;
+            height: 20px;
+        }
+
+        .taskbar-spacer {
+            flex-grow: 1;
+        }
+
+        .system-tray {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-right: 10px;
+        }
+
+        .visitor-counter {
+            background: #000;
+            color: #00ff00;
+            padding: 2px 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            border: 1px inset #c0c0c0;
+        }
+
+        .clock {
+            background: #c0c0c0;
+            border: 1px inset #c0c0c0;
+            padding: 4px 8px;
+            font-size: 10px;
+        }
+
+        /* Start Menu */
+        .start-menu {
+            position: fixed;
+            bottom: 40px;
+            left: 2px;
+            width: 200px;
+            background: #c0c0c0;
+            border: 2px outset #c0c0c0;
+            display: none;
+            z-index: 2000;
+            box-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .start-menu.show {
+            display: block;
+        }
+
+        .start-menu-header {
+            background: linear-gradient(90deg, #0000ff, #0080ff);
+            color: white;
+            padding: 8px 12px;
+            font-weight: bold;
+        }
+
+        .start-menu-item {
+            padding: 6px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #808080;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .start-menu-item:hover {
+            background: #0000ff;
+            color: white;
+        }
+
+        .start-menu-item img {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Windows */
+        .window {
+            position: fixed;
+            background: #c0c0c0;
+            border: 2px outset #c0c0c0;
+            min-width: 400px;
+            max-width: 90vw;
+            max-height: 80vh;
+            z-index: 2000;
+            display: none;
+            box-shadow: 4px 4px 8px rgba(0,0,0,0.5);
+        }
+
+        .window.show {
+            display: block;
+        }
+
+        .window-header {
+            background: linear-gradient(90deg, #0000ff 0%, #0080ff 100%);
+            color: white;
+            padding: 4px 8px;
+            font-size: 11px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: move;
+        }
+
+        .window.inactive .window-header {
+            background: #808080;
+        }
+
+        .window-title {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .window-title img {
+            width: 16px;
+            height: 16px;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 2px;
+        }
+
+        .window-control {
+            width: 16px;
+            height: 14px;
+            background: #c0c0c0;
+            border: 1px outset #c0c0c0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+            font-weight: bold;
+        }
+
+        .window-control:active {
+            border: 1px inset #c0c0c0;
+        }
+
+        .window-content {
+            background: white;
+            overflow: hidden;
+            max-height: 500px;
+        }
+
+        .window-content-scroll {
+            padding: 16px;
+            max-height: 500px;
+            overflow-y: auto;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        /* Screensaver */
+        .screensaver {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 9999;
+            display: none;
+            cursor: none;
+        }
+
+        .flying-toasters {
+            position: absolute;
+            color: #fff;
+            font-size: 20px;
+            animation: flyAcross 8s linear infinite;
+        }
+
+        @keyframes flyAcross {
+            from { transform: translateX(-100px); }
+            to { transform: translateX(calc(100vw + 100px)); }
+        }
+
+        .maze {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: 
+                linear-gradient(90deg, #ff00ff 50%, transparent 50%),
+                linear-gradient(#00ffff 50%, transparent 50%);
+            background-size: 20px 20px;
+            animation: mazeMove 2s linear infinite;
+        }
+
+        @keyframes mazeMove {
+            0% { background-position: 0 0, 0 0; }
+            100% { background-position: 20px 20px, 20px 20px; }
+        }
+
+        /* Performance Monitor */
+        .perf-meter {
+            background: #000;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            padding: 8px;
+            height: 200px;
+            overflow: hidden;
+        }
+
+        .perf-graph {
+            width: 100%;
+            height: 60px;
+            background: #000;
+            border: 1px solid #00ff00;
+            margin: 5px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .perf-bar {
+            position: absolute;
+            bottom: 0;
+            width: 2px;
+            background: #00ff00;
+            transition: height 0.5s ease;
+        }
+
+        /* File Explorer */
+        .file-explorer {
+            display: flex;
+            height: 400px;
+        }
+
+        .folder-tree {
+            width: 150px;
+            background: #fff;
+            border-right: 1px solid #808080;
+            overflow-y: auto;
+            font-size: 10px;
+        }
+
+        .folder-item {
+            padding: 2px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .folder-item:hover {
+            background: #0000ff;
+            color: white;
+        }
+
+        .folder-item.selected {
+            background: #0000ff;
+            color: white;
+        }
+
+        .file-list {
+            flex: 1;
+            background: #fff;
+            padding: 8px;
+            overflow-y: auto;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 2px;
+            margin: 2px 0;
+            cursor: pointer;
+        }
+
+        .file-item:hover {
+            background: #0000ff;
+            color: white;
+        }
+
+        /* Guestbook */
+        .guestbook {
+            background: #fff;
+            padding: 16px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .guestbook-header {
+            text-align: center;
+            margin-bottom: 16px;
+            color: #ff00ff;
+            font-weight: bold;
+        }
+
+        .guestbook-entry {
+            border: 1px solid #808080;
+            margin: 8px 0;
+            padding: 8px;
+            background: #f0f0f0;
+        }
+
+        .guestbook-form {
+            border: 2px inset #c0c0c0;
+            padding: 12px;
+            margin-top: 16px;
+        }
+
+        .guestbook-form input, .guestbook-form textarea {
+            border: 1px inset #c0c0c0;
+            padding: 4px;
+            font-family: 'MS Sans Serif', sans-serif;
+            font-size: 11px;
+            width: 100%;
+            margin: 4px 0;
+        }
+
+        /* Activity Feed */
+        .activity-feed {
+            background: #000;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            padding: 8px;
+            height: 400px;
+            overflow-y: auto;
+        }
+
+        .activity-item {
+            margin: 4px 0;
+            padding: 4px;
+            border-left: 2px solid #00ff00;
+            padding-left: 8px;
+        }
+
+        /* Secret Content */
+        .secret-content {
+            background: linear-gradient(45deg, #ff00ff, #00ffff);
+            color: #fff;
+            text-shadow: 1px 1px 2px #000;
+            padding: 20px;
+            text-align: center;
+            animation: rainbow 3s linear infinite;
+        }
+
+        @keyframes rainbow {
+            0% { filter: hue-rotate(0deg); }
+            100% { filter: hue-rotate(360deg); }
+        }
+
+        /* Utility Classes */
+        .button {
+            background: #c0c0c0;
+            border: 2px outset #c0c0c0;
+            padding: 4px 12px;
+            cursor: pointer;
+            font-family: 'MS Sans Serif', sans-serif;
+            font-size: 11px;
+            margin: 4px;
+            display: inline-block;
+            text-decoration: none;
+            color: black;
+        }
+
+        .button:active {
+            border: 2px inset #c0c0c0;
+        }
+
+        /* Scrollbar Styling */
+        *::-webkit-scrollbar {
+            width: 16px;
+        }
+
+        *::-webkit-scrollbar-track {
+            background: #c0c0c0;
+            border: 1px inset #c0c0c0;
+        }
+
+        *::-webkit-scrollbar-thumb {
+            background: #c0c0c0;
+            border: 1px outset #c0c0c0;
+        }
+
+        *::-webkit-scrollbar-thumb:active {
+            border: 1px inset #c0c0c0;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .desktop-icons {
+                grid-template-columns: repeat(auto-fill, 60px);
+                padding: 10px;
+            }
+            
+            .desktop-icon {
+                width: 60px;
+                height: 60px;
+            }
+            
+            .window {
+                min-width: 95vw;
+                max-width: 95vw;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Boot Screen -->
+    <div class="boot-screen" id="bootScreen">
+        <div class="boot-text" style="animation-delay: 0s;">HIGHER MARKET OS v1.0</div>
+        <div class="boot-text" style="animation-delay: 0.5s;">Loading system files...</div>
+        <div class="boot-text" style="animation-delay: 1s;">Initializing creative matrix...</div>
+        <div class="boot-text" style="animation-delay: 1.5s;">Connecting to Higher network...</div>
+        <div class="boot-text" style="animation-delay: 2s;">System ready.</div>
+    </div>
+
+    <!-- Screensaver -->
+    <div class="screensaver" id="screensaver"></div>
+
+    <!-- Desktop -->
+    <div class="desktop" id="desktop">
+        <video id="background-video" autoplay muted loop>
+            <source src="assets/background.mp4" type="video/mp4">
+            <source src="assets/background.webm" type="video/webm">
+        </video>
+
+        <!-- Desktop Icons -->
+        <div class="desktop-icons">
+            <div class="desktop-icon" data-app="shop">
+                <img src="assets/shop-icon.png" alt="Shop" />
+                <span>Shop</span>
+            </div>
+            <div class="desktop-icon" data-app="about">
+                <img src="assets/about-icon.png" alt="About" />
+                <span>About</span>
+            </div>
+            <div class="desktop-icon" data-app="friends">
+                <img src="assets/friends-icon.png" alt="Friends" />
+                <span>Friends</span>
+            </div>
+            <div class="desktop-icon" data-app="projects">
+                <img src="assets/projects-icon.png" alt="Projects" />
+                <span>Projects</span>
+            </div>
+            <div class="desktop-icon" data-app="collaborate">
+                <img src="assets/collaborate-icon.png" alt="Collaborate" />
+                <span>Collaborate</span>
+            </div>
+            <div class="desktop-icon" data-app="transmissions">
+                <img src="assets/transmissions-icon.png" alt="Transmissions" />
+                <span>Transmissions</span>
+            </div>
+            <div class="desktop-icon" data-app="guestbook">
+                <img src="assets/guestbook-icon.png" alt="Guestbook" />
+                <span>Guestbook</span>
+            </div>
+            <div class="desktop-icon" data-app="activity">
+                <img src="assets/activity-icon.png" alt="Activity" />
+                <span>Live Feed</span>
+            </div>
+            <div class="desktop-icon" data-app="performance">
+                <img src="assets/performance-icon.png" alt="Performance" />
+                <span>System Monitor</span>
+            </div>
+            <div class="desktop-icon" data-app="files">
+                <img src="assets/files-icon.png" alt="Files" />
+                <span>Archive</span>
+            </div>
+        </div>
+
+        <!-- Taskbar -->
+        <div class="taskbar">
+            <div class="start-button" id="startButton">
+                <img src="assets/higher-market-logo.png" alt="Higher Market" />
+                <span>Start</span>
+            </div>
+            <div class="taskbar-spacer"></div>
+            <div class="system-tray">
+                <div class="visitor-counter" id="visitorCounter">Visitors: 001337</div>
+                <div class="clock" id="clock">12:00 PM</div>
+            </div>
+        </div>
+
+        <!-- Start Menu -->
+        <div class="start-menu" id="startMenu">
+            <div class="start-menu-header">Higher Market</div>
+            <div class="start-menu-item" data-app="shop">
+                <img src="assets/shop-icon.png" alt="" />
+                <span>Shop</span>
+            </div>
+            <div class="start-menu-item" data-app="about">
+                <img src="assets/about-icon.png" alt="" />
+                <span>About</span>
+            </div>
+            <div class="start-menu-item" data-app="friends">
+                <img src="assets/friends-icon.png" alt="" />
+                <span>Friends</span>
+            </div>
+            <div class="start-menu-item" data-app="projects">
+                <img src="assets/projects-icon.png" alt="" />
+                <span>Projects</span>
+            </div>
+            <div class="start-menu-item" data-app="collaborate">
+                <img src="assets/collaborate-icon.png" alt="" />
+                <span>Collaborate</span>
+            </div>
+            <div class="start-menu-item" data-app="transmissions">
+                <img src="assets/transmissions-icon.png" alt="" />
+                <span>Transmissions</span>
+            </div>
+            <hr style="margin: 4px 0; border: 1px inset #c0c0c0;">
+            <div class="start-menu-item" data-app="guestbook">
+                <img src="assets/guestbook-icon.png" alt="" />
+                <span>Guestbook</span>
+            </div>
+            <div class="start-menu-item" data-app="activity">
+                <img src="assets/activity-icon.png" alt="" />
+                <span>Live Feed</span>
+            </div>
+            <div class="start-menu-item" data-app="performance">
+                <img src="assets/performance-icon.png" alt="" />
+                <span>System Monitor</span>
+            </div>
+            <div class="start-menu-item" data-app="files">
+                <img src="assets/files-icon.png" alt="" />
+                <span>Archive Explorer</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Windows -->
+    <!-- About Window -->
+    <div class="window" id="aboutWindow" data-app="about">
+        <div class="window-header">
+            <span class="window-title">
+                <img src="assets/about-icon.png" alt="" />
+                About Higher Market
+            </span>
+            <div class="window-controls">
+                <div class="window-control" data-action="minimize">_</div>
+                <div class="window-control" data-action="maximize">□</div>
+                <div class="window-control" data-action="close">×</div>
+            </div>
+        </div>
+        <div class="window-content">
+            <div class="window-content-scroll">
+                <h2>About Higher Market</h2>
+                <p>Higher Market is a creative platform that connects makers, artists, and innovators in the Higher ecosystem. We're building a community where creativity meets collaboration, where unique projects find their audience, and where the spirit of making drives everything we do.</p>
+                
+                <h3>Our Mission</h3>
+                <p>To create a space where independent creators can showcase their work, connect with like-minded individuals, and contribute to the Higher community's creative output.</p>
+                
+                <h3>What is Higher?</h3>
+                <p>Higher is a decentralized creative community focused on elevating art, culture, and human potential. We believe in the power of creative expression to drive positive change and meaningful connections.</p>
+                
+                <h3>Values</h3>
+                <ul>
+                    <li>Creative excellence and authenticity</li>
+                    <li>Community-driven collaboration</li>
+                    <li>Supporting independent makers</li>
+                    <li>Innovation in digital culture</li>
+                    <li>Sustainable creative practices</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Friends Window -->
+    <div class="window" id="friendsWindow" data-app="friends">
+        <div class="window-header">
+            <span class="window-title">
+                <img src="assets/friends-icon.png" alt="" />
+                Friends & Network
+            </span>
+            <div class="window-controls">
+                <div class="window-control" data-action="minimize">_</div>
+                <div class="window-control" data-action="maximize">□</div>
+                <div class="window-control" data-action="close">×</div>
+            </div>
+        </div>
+        <div class="window-content">
+            <div class="window-content-scroll">
+                <h2>Our Creative Network</h2>
+                
+                <h3>Season Makers</h3>
+                <p>Talented creators featured in our current season:</p>
+                <ul>
+                    <li>@digitalartist - Pushing boundaries in generative art</li>
+                    <li>@productdesigner - Crafting beautiful user experiences</li>
+                    <li>@narrativewriter - Exploring new forms of storytelling</li>
+                    <li>@soundarchitect - Creating immersive audio landscapes</li>
+                    <li>@toolbuilder - Developing utilities for creators</li>
+                </ul>
+                
+                <h3>Higher Projects</h3>
+                <ul>
+                    <li><a href="#" target="_blank">Higher Studios</a> - Creative production house</li>
+                    <li><a href="#" target="_blank">Higher Labs</a> - Experimental projects</li>
+                    <li><a href="#" target="_blank">Higher Gallery</a> - Digital art curation</li>
+                    <li><a href="#" target="_blank">Higher Tools</a> - Creator utilities</li>
+                </ul>
+                
+                <h3>Aligned Projects</h3>
+                <ul>
+                    <li><a href="#" target="_blank">Independent Creator Collective</a></li>
+                    <li><a href="#" target="_blank">Decentralized Art Platform</a></li>
+                    <li><a href="#" target="_blank">Creative Commons Initiative</a></li>
+                    <li><a href="#" target="_blank">Open Source Design Tools</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Projects Window -->
+    <div class="window" id="projectsWindow" data-app="projects">
+        <div class="window-header">
+            <span class="window-title">
+                <img src="assets/projects-icon.png" alt="" />
+                Side Projects
+            </span>
+            <div class="window-controls">
+                <div class="window-control" data-action="minimize">_</div>
+                <div class="window-control" data-action="maximize">□</div>
+                <div class="window-control" data-action="close">×</div>
+            </div>
+        </div>
+        <div class="window-content">
+            <div class="window-content-scroll">
+                <h2>Higher Market Projects</h2>
+                
+                <div style="margin-bottom: 20px;">
+                    <h3>🎨 Creative Tools Suite</h3>
+                    <p>A collection of web-based tools designed for digital creators, including color palette generators, typography helpers, and design inspiration boards.</p>
+                    <a href="#" target="_blank" class="button">Visit Project</a>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <h3>📱 Maker Mobile</h3>
+                    <p>Mobile app connecting local makers with their communities, featuring event discovery, skill sharing, and collaborative project matching.</p>
+                    <a href="#" target="_blank" class="button">Learn More</a>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <h3>🌐 Decentralized Marketplace</h3>
+                    <p>Experimental blockchain-based marketplace for unique digital goods, emphasizing creator ownership and community governance.</p>
+                    <a href="#" target="_blank" class="button">Explore</a>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <h3>📖 Maker Stories</h3>
+                    <p>Platform documenting the journeys of independent creators, sharing insights, challenges, and successes in the creative economy.</p>
+                    <a href="#" target="_blank" class="button">Read Stories</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Collaborate Window -->
+    <div class="window" id="collaborateWindow" data-app="collaborate">
+        <div class="window-header">
+            <span class="window-title">
+                <img src="assets/collaborate-icon.png" alt="" />
+                Collaborate
+            </span>
+            <div class="window-controls">
+                <div class="window-control" data-action="minimize">_</div>
+                <div class="window-control" data-action="maximize">□</div>
+                <div class="window-control" data-action="close">×</div>
+            </div>
+        </div>
+        <div class="window-content">
+            <div class="window-content-scroll">
+                <h2>Let's Work Together</h2>
+                
+                <div style="margin-bottom: 25px;">
+                    <h3>You × Higher</h3>
+                    <p>Interested in partnering with Higher Market? We're always looking for innovative collaborations.</p>
+                    <ul>
+                        <li>Brand partnerships and sponsorships</li>
+                        <li>Cross-community collaborations</li>
+                        <li>Event partnerships and activations</li>
+                        <li>Technology and platform integrations</li>
+                    </ul>
+                    <a href="mailto:hello@highermarket.xyz" class="button">Get in Touch</a>
+                </div>
+                
+                <div style="margin-bottom: 25px;">
+                    <h3>For the Makers</h3>
+                    <p>Join our community of independent creators.</p>
+                    
+                    <div style="margin: 15px 0;">
+                        <strong>List Your Items:</strong>
+                        <p>Showcase your work to the Higher community.</p>
+                        <a href="#" target="_blank" class="button">Submit Your Work</a>
+                    </div>
+                    
+                    <div style="margin: 15px 0;">
+                        <strong>Creative Briefs:</strong>
+                        <p>Explore opportunities to work on exciting projects.</p>
+                        <a href="#" target="_blank" class="button">View Opportunities</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Guestbook Window -->
+    <div class="window" id="guestbookWindow" data-app="guestbook">
+        <div class="window-header">
+            <span class="window-title">
+                <img src="assets/guestbook-icon.png" alt="" />
+                Higher Market Guestbook
+            </span>
+            <div class="window-controls">
+                <div class="window-control" data-action="minimize">_</div>
+                <div class="window-control" data-action="maximize">□</div>
+                <div class="window-control" data-action="close">×</div>
+            </div>
+        </div>
+        <div class="window-content">
+            <div class="guestbook">
+                <div class="guestbook-header">
+                    ★ ☆ ★ SIGN OUR GUESTBOOK! ★ ☆ ★<br>
+                    Let us know you were here!
+                </div>
+                
+                <div id="guestbookEntries">
+                    <div class="guestbook-entry">
+                        <strong>CryptoArtist42</strong> - 2025/09/02 3:47 PM<br>
+                        Love what you're building here! The retro vibe is perfect for the creative community. Keep pushing boundaries! 🚀
+                    </div>
+                    <div class="guestbook-entry">
+                        <strong>DigitalNomadMaker</strong> - 2025/09/01 11:23 AM<br>
+                        Found this through the Higher network. Excited to see where this goes. The desktop experience is so nostalgic!
+                    </div>
+                    <div class="guestbook-entry">
+                        <strong>RetroWebFan</strong> - 2025/08/30 7:15 PM<br>
+                        This brings back so many memories of the early web. Amazing work on the Windows 95 aesthetic!
+                    </div>
+                </div>
+                
+                <div class="guestbook-form">
+                    <h3>Sign the Guestbook</h3>
+                    <input type="text" placeholder="Your name" id="guestName" />
+                    <textarea placeholder="Leave a message..." id="guestMessage" rows="3"></textarea>
+                    <button class="button" onclick="addGuestbookEntry()">Sign Guestbook</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activity Feed Window -->
+    <div class="window" id="activityWindow" data-app="activity">
+        <div class="window-header">
+            <span class="window-title">
+                <img src="assets/activity-icon.png" alt="" />
+                Higher Network - Live Feed
+            </span>
+            <div class="window-controls">
+                <div class="window-control" data-action="minimize">_</div>
+                <div class="window-control" data-action="maximize">□</div>
+                <div class="window-control" data-action="close">×</div>
+            </div>
+        </div>
+        <div class="window-content">
+            <div class="activity-feed" id="activityFeed">
+                <div class="activity-item">[2025/09/03 12:47] @maker_alex: Just dropped new generative art collection!</div>
+                <div class="activity-item">[2025/09/03 12:45] @designerbeth: Working on experimental UI patterns for web3</div>
+                <div class="activity-item">[2025/09/03 12:42] @codepoet: Open sourcing my creative coding toolkit</div>
+                <div class="activity-item">[2025/09/03 12:38] @soundweaver: New ambient track inspired by digital landscapes</div>
+                <div class="activity-item">[2025/09/03 12:35] @pixelartisan: Collaborating on retro game aesthetics</div>
+                <div class="activity-item">[2025/09/03 12:30] @storycrafter: Writing interactive fiction for the metaverse</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Monitor Window -->
+    <div class="window" id="performanceWindow" data-app="performance">
+        <div class="window-header">
+            <span class="window-title">
+                <img src="assets/performance-icon.png" alt="" />
+                System Performance
+            </span>
+            <div class="window-controls">
+                <div class="window-control" data-action="minimize">_</div>
+                <div class="window-control" data-action="maximize">□</div>
+                <div class="window-control" data-action="close">×</div>
+            </div>
+        </div>
+        <div class="window-content">
+            <div class="perf-meter">
+                <div>SYSTEM STATUS: OPTIMAL</div>
+                <div>CREATIVITY LEVEL: <span id="creativityLevel">HIGH</span></div>
+                <div>INSPIRATION FLOW:</div>
+                <div class="perf-graph" id="inspirationGraph"></div>
+                <div>COMMUNITY ENGAGEMENT:</div>
+                <div class="perf-graph" id="engagementGraph"></div>
+                <div id="perfStats">
+                    CPU: 42% | MEMORY: 1337MB | VIBE: IMMACULATE<br>
+                    ACTIVE MAKERS: 127 | PROJECTS LIVE: 89<br>
+                    LAST UPDATED: <span id="lastUpdated">2025/09/03 12:47:23</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- File Explorer Window -->
+    <div class="window" id="filesWindow" data-app="files">
+        <div class="window-header">
+            <span class="window-title">
+                <img src="assets/files-icon.png" alt="" />
+                Archive Explorer - C:\HigherMarket\Archive\
+            </span>
+            <div class="window-controls">
+                <div class="window-control" data-action="minimize">_</div>
+                <div class="window-control" data-action="maximize">□</div>
+                <div class="window-control" data-action="close">×</div>
+            </div>
+        </div>
+        <div class="window-content">
+            <div class="file-explorer">
+                <div class="folder-tree">
+                    <div class="folder-item selected" data-folder="root">📁 Archive</div>
+                    <div class="folder-item" data-folder="releases" style="padding-left: 24px;">📁 Releases</div>
+                    <div class="folder-item" data-folder="2025" style="padding-left: 36px;">📁 2025</div>
+                    <div class="folder-item" data-folder="2024" style="padding-left: 36px;">📁 2024</div>
+                    <div class="folder-item" data-folder="limited" style="padding-left: 24px;">📁 Limited Editions</div>
+                    <div class="folder-item" data-folder="collab" style="padding-left: 24px;">📁 Collaborations</div>
+                    <div class="folder-item" data-folder="community" style="padding-left: 24px;">📁 Community</div>
+                </div>
+                <div class="file-list" id="fileList">
+                    <div class="file-item">📁 Releases - Collection of all release archives</div>
+                    <div class="file-item">📁 Limited Editions - Exclusive drops and rare items</div>
+                    <div class="file-item">📁 Collaborations - Partnership projects</div>
+                    <div class="file-item">📁 Community - User-generated content</div>
+                    <div class="file-item">📄 README.txt - Archive information</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Secret Window -->
+    <div class="window" id="secretWindow" data-app="secret">
+        <div class="window-header">
+            <span class="window-title">🌈 SECRET HIGHER TRANSMISSION 🌈</span>
+            <div class="window-controls">
+                <div class="window-control" data-action="close">×</div>
+            </div>
+        </div>
+        <div class="window-content">
+            <div class="secret-content">
+                <h2>🎉 CONGRATULATIONS! 🎉</h2>
+                <p>You've unlocked the secret Higher Market transmission!</p>
+                <br>
+                <p>✨ You are now part of the inner circle of digital explorers ✨</p>
+                <br>
+                <p>Secret unlock code: <strong>HIGHER2025</strong></p>
+                <p>Use this code for exclusive access to beta features!</p>
+                <br>
+                <a href="#" class="button">Claim Your Badge</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // System State
+        let lastActivity = Date.now();
+        let screensaverTimeout;
+        let isScreensaverActive = false;
+        let konamiCode = [];
+        let konamiPattern = [38, 38, 40, 40, 37, 39, 37, 39, 66, 65]; // ↑↑↓↓←→←→BA
+        let windowZIndex = 2000;
+        let activeWindow = null;
+
+        // Sound System
+        const sounds = {
+            click: null,
+            startup: null,
+            error: null
+        };
+
+        // Initialize sound system
+        function initSounds() {
+            // Create placeholder sound functions
+            sounds.click = () => {
+                // Web Audio API click sound
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                oscillator.frequency.setValueAtTime(400, audioContext.currentTime + 0.1);
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.2);
+            };
+        }
+
+        // Boot sequence
+        function bootSystem() {
+            setTimeout(() => {
+                document.getElementById('bootScreen').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('bootScreen').style.display = 'none';
+                    document.getElementById('desktop').classList.add('loaded');
+                    initSounds();
+                    startClock();
+                    updateVisitorCounter();
+                    initPerformanceMonitor();
+                    startActivityFeed();
+                    setupScreensaver();
+                }, 1000);
+            }, 3000);
+        }
+
+        // Clock
+        function startClock() {
+            function updateClock() {
+                const now = new Date();
+                document.getElementById('clock').textContent = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            }
+            updateClock();
+            setInterval(updateClock, 1000);
+        }
+
+        // Visitor Counter
+        function updateVisitorCounter() {
+            const count = localStorage.getItem('hmVisitorCount') || Math.floor(Math.random() * 10000) + 1000;
+            const newCount = parseInt(count) + 1;
+            localStorage.setItem('hmVisitorCount', newCount);
+            document.getElementById('visitorCounter').textContent = `Visitors: ${String(newCount).padStart(6, '0')}`;
+        }
+
+        // Start Menu
+        document.getElementById('startButton').addEventListener('click', (e) => {
+            e.stopPropagation();
+            const startMenu = document.getElementById('startMenu');
+            const isOpen = startMenu.classList.contains('show');
+            startMenu.classList.toggle('show');
+            document.getElementById('startButton').classList.toggle('active', !isOpen);
+            if (sounds.click) sounds.click();
+        });
+
+        // Close start menu when clicking elsewhere
+        document.addEventListener('click', () => {
+            document.getElementById('startMenu').classList.remove('show');
+            document.getElementById('startButton').classList.remove('active');
+        });
+
+        // App launching
+        function launchApp(appName) {
+            resetActivity();
+            if (sounds.click) sounds.click();
+            
+            switch(appName) {
+                case 'shop':
+                    window.open('https://highermarket.xyz', '_blank');
+                    break;
+                case 'transmissions':
+                    window.open('#', '_blank');
+                    break;
+                default:
+                    openWindow(appName + 'Window');
+                    break;
+            }
+            
+            // Close start menu
+            document.getElementById('startMenu').classList.remove('show');
+            document.getElementById('startButton').classList.remove('active');
+        }
+
+        // Desktop icons
+        document.querySelectorAll('.desktop-icon').forEach(icon => {
+            icon.addEventListener('dblclick', () => {
+                launchApp(icon.dataset.app);
+            });
+        });
+
+        // Start menu items
+        document.querySelectorAll('.start-menu-item').forEach(item => {
+            item.addEventListener('click', () => {
+                launchApp(item.dataset.app);
+            });
+        });
+
+        // Window Management
+        function openWindow(windowId) {
+            const window = document.getElementById(windowId);
+            window.classList.add('show');
+            window.style.zIndex = ++windowZIndex;
+            setActiveWindow(window);
+            
+            if (!window.style.left) {
+                centerWindow(window);
+            }
+        }
+
+        function centerWindow(window) {
+            const rect = window.getBoundingClientRect();
+            const x = (window.innerWidth - 400) / 2;
+            const y = (window.innerHeight - 300) / 2;
+            window.style.left = Math.max(20, x) + 'px';
+            window.style.top = Math.max(20, y) + 'px';
+        }
+
+        function setActiveWindow(window) {
+            document.querySelectorAll('.window').forEach(w => w.classList.add('inactive'));
+            window.classList.remove('inactive');
+            activeWindow = window;
+        }
+
+        // Window controls
+        document.querySelectorAll('.window-control').forEach(control => {
+            control.addEventListener('click', (e) => {
+                const action = e.target.dataset.action;
+                const window = e.target.closest('.window');
+                
+                switch(action) {
+                    case 'close':
+                        window.classList.remove('show');
+                        break;
+                    case 'minimize':
+                        window.style.display = 'none';
+                        break;
+                    case 'maximize':
+                        if (window.style.width === '95vw') {
+                            window.style.width = '';
+                            window.style.height = '';
+                            window.style.top = '';
+                            window.style.left = '';
+                            centerWindow(window);
+                        } else {
+                            window.style.width = '95vw';
+                            window.style.height = '90vh';
+                            window.style.top = '20px';
+                            window.style.left = '20px';
+                        }
+                        break;
+                }
+                if (sounds.click) sounds.click();
+            });
+        });
+
+        // Window dragging
+        let draggedWindow = null;
+        document.querySelectorAll('.window-header').forEach(header => {
+            header.addEventListener('mousedown', (e) => {
+                if (e.target.classList.contains('window-control')) return;
+                
+                draggedWindow = e.target.closest('.window');
+                setActiveWindow(draggedWindow);
+                
+                const rect = draggedWindow.getBoundingClientRect();
+                const offsetX = e.clientX - rect.left;
+                const offsetY = e.clientY - rect.top;
+                
+                function mousemove(e) {
+                    if (draggedWindow) {
+                        const x = e.clientX - offsetX;
+                        const y = e.clientY - offsetY;
+                        draggedWindow.style.left = Math.max(0, Math.min(window.innerWidth - 50, x)) + 'px';
+                        draggedWindow.style.top = Math.max(0, Math.min(window.innerHeight - 50, y)) + 'px';
+                    }
+                }
+                
+                function mouseup() {
+                    draggedWindow = null;
+                    document.removeEventListener('mousemove', mousemove);
+                    document.removeEventListener('mouseup', mouseup);
+                }
+                
+                document.addEventListener('mousemove', mousemove);
+                document.addEventListener('mouseup', mouseup);
+            });
+        });
+
+        // Activity tracking for screensaver
+        function resetActivity() {
+            lastActivity = Date.now();
+            if (isScreensaverActive) {
+                hideScreensaver();
+            }
+        }
+
+        document.addEventListener('mousemove', resetActivity);
+        document.addEventListener('keypress', resetActivity);
+        document.addEventListener('click', resetActivity);
+
+        // Screensaver system
+        function setupScreensaver() {
+            function checkForScreensaver() {
+                if (Date.now() - lastActivity > 30000 && !isScreensaverActive) { // 30 seconds
+                    showScreensaver();
+                }
+            }
+            setInterval(checkForScreensaver, 1000);
+        }
+
+        function showScreensaver() {
+            isScreensaverActive = true;
+            const screensaver = document.getElementById('screensaver');
+            screensaver.style.display = 'block';
+            
+            // Random screensaver type
+            const types = ['toasters', 'maze', 'matrix'];
+            const type = types[Math.floor(Math.random() * types.length)];
+            
+            switch(type) {
+                case 'toasters':
+                    createFlyingToasters(screensaver);
+                    break;
+                case 'maze':
+                    createMaze(screensaver);
+                    break;
+                case 'matrix':
+                    createMatrix(screensaver);
+                    break;
+            }
+        }
+
+        function hideScreensaver() {
+            isScreensaverActive = false;
+            const screensaver = document.getElementById('screensaver');
+            screensaver.style.display = 'none';
+            screensaver.innerHTML = '';
+        }
+
+        function createFlyingToasters(container) {
+            container.innerHTML = '<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 20px;">🍞 Flying Toasters 🍞</div>';
+            
+            function addToaster() {
+                const toaster = document.createElement('div');
+                toaster.className = 'flying-toasters';
+                toaster.textContent = '🍞';
+                toaster.style.top = Math.random() * window.innerHeight + 'px';
+                toaster.style.left = '-100px';
+                container.appendChild(toaster);
+                
+                setTimeout(() => toaster.remove(), 8000);
+            }
+            
+            const interval = setInterval(addToaster, 1000);
+            container.dataset.interval = interval;
+        }
+
+        function createMaze(container) {
+            const maze = document.createElement('div');
+            maze.className = 'maze';
+            container.appendChild(maze);
+        }
+
+        function createMatrix(container) {
+            const chars = 'HIGHERMARKET0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            const columns = Math.floor(window.innerWidth / 20);
+            
+            for (let i = 0; i < columns; i++) {
+                const column = document.createElement('div');
+                column.style.position = 'absolute';
+                column.style.left = i * 20 + 'px';
+                column.style.top = '0';
+                column.style.color = '#00ff00';
+                column.style.fontFamily = 'monospace';
+                column.style.fontSize = '14px';
+                column.style.whiteSpace = 'pre';
+                
+                let text = '';
+                const height = Math.floor(window.innerHeight / 20);
+                
+                function updateColumn() {
+                    text = '';
+                    for (let j = 0; j < height; j++) {
+                        text += chars[Math.floor(Math.random() * chars.length)] + '\n';
+                    }
+                    column.textContent = text;
+                }
+                
+                updateColumn();
+                const interval = setInterval(updateColumn, 100 + Math.random() * 200);
+                container.appendChild(column);
+            }
+        }
+
+        // Konami Code Detection
+        document.addEventListener('keydown', (e) => {
+            konamiCode.push(e.keyCode);
+            if (konamiCode.length > konamiPattern.length) {
+                konamiCode.shift();
+            }
+            
+            if (konamiCode.length === konamiPattern.length && 
+                konamiCode.every((code, index) => code === konamiPattern[index])) {
+                openWindow('secretWindow');
+                konamiCode = [];
+                // Play secret sound
+                if (sounds.click) {
+                    for (let i = 0; i < 3; i++) {
+                        setTimeout(() => sounds.click(), i * 200);
+                    }
+                }
+            }
+        });
+
+        // Performance Monitor
+        function initPerformanceMonitor() {
+            const inspirationBars = [];
+            const engagementBars = [];
+            
+            // Create graph bars
+            for (let i = 0; i < 50; i++) {
+                const inspirationBar = document.createElement('div');
+                inspirationBar.className = 'perf-bar';
+                inspirationBar.style.left = i * 4 + 'px';
+                document.getElementById('inspirationGraph').appendChild(inspirationBar);
+                inspirationBars.push(inspirationBar);
+                
+                const engagementBar = document.createElement('div');
+                engagementBar.className = 'perf-bar';
+                engagementBar.style.left = i * 4 + 'px';
+                document.getElementById('engagementGraph').appendChild(engagementBar);
+                engagementBars.push(engagementBar);
+            }
+            
+            function updatePerformance() {
+                // Update inspiration graph
+                inspirationBars.forEach((bar, i) => {
+                    const height = Math.random() * 60;
+                    bar.style.height = height + 'px';
+                    if (height > 45) bar.style.background = '#ffff00';
+                    else if (height > 30) bar.style.background = '#00ff00';
+                    else bar.style.background = '#ff0000';
+                });
+                
+                // Update engagement graph
+                engagementBars.forEach((bar, i) => {
+                    const height = 30 + Math.sin((Date.now() / 1000 + i * 0.1)) * 20;
+                    bar.style.height = height + 'px';
+                });
+                
+                // Update creativity level
+                const levels = ['TRANSCENDENT', 'HIGH', 'ELEVATED', 'RISING', 'STABLE'];
+                document.getElementById('creativityLevel').textContent = levels[Math.floor(Math.random() * levels.length)];
+                
+                // Update timestamp
+                document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
+            }
+            
+            setInterval(updatePerformance, 2000);
+        }
+
+        // Activity Feed
+        function startActivityFeed() {
+            const activities = [
+                '@maker_alex: Just dropped new generative art collection!',
+                '@designerbeth: Working on experimental UI patterns for web3',
+                '@codepoet: Open sourcing my creative coding toolkit',
+                '@soundweaver: New ambient track inspired by digital landscapes',
+                '@pixelartisan: Collaborating on retro game aesthetics',
+                '@storycrafter: Writing interactive fiction for the metaverse',
+                '@techbuilder: Building tools for decentralized creators',
+                '@visualpoet: Exploring the intersection of AI and art',
+                '@communitymod: New Higher Market season launching soon!',
+                '@retrodesigner: Bringing back the golden age of computing'
+            ];
+            
+            function addActivity() {
+                const feed = document.getElementById('activityFeed');
+                const activity = activities[Math.floor(Math.random() * activities.length)];
+                const timestamp = new Date().toLocaleString([], {month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'});
+                
+                const item = document.createElement('div');
+                item.className = 'activity-item';
+                item.textContent = `[${timestamp}] ${activity}`;
+                
+                feed.insertBefore(item, feed.firstChild);
+                
+                // Keep only last 20 items
+                while (feed.children.length > 20) {
+                    feed.removeChild(feed.lastChild);
+                }
+            }
+            
+            setInterval(addActivity, 5000 + Math.random() * 10000);
+        }
+
+        // File Explorer
+        const fileSystem = {
+            root: [
+                { name: 'Releases', type: 'folder' },
+                { name: 'Limited Editions', type: 'folder' },
+                { name: 'Collaborations', type: 'folder' },
+                { name: 'Community', type: 'folder' },
+                { name: 'README.txt', type: 'file' }
+            ],
+            releases: [
+                { name: '2025', type: 'folder' },
+                { name: '2024', type: 'folder' },
+                { name: 'Upcoming.txt', type: 'file' }
+            ],
+            2025: [
+                { name: 'Genesis Collection.zip', type: 'file' },
+                { name: 'Summer Vibes.zip', type: 'file' },
+                { name: 'Autumn Drops.zip', type: 'file' }
+            ],
+            2024: [
+                { name: 'Inaugural Release.zip', type: 'file' },
+                { name: 'Holiday Special.zip', type: 'file' },
+                { name: 'Community Choice.zip', type: 'file' }
+            ],
+            limited: [
+                { name: 'Gold Edition Series.zip', type: 'file' },
+                { name: 'Artist Collaborations.zip', type: 'file' },
+                { name: 'Founder Access.zip', type: 'file' }
+            ],
+            collab: [
+                { name: 'Partner Projects.zip', type: 'file' },
+                { name: 'Cross-Platform.zip', type: 'file' },
+                { name: 'Community Builds.zip', type: 'file' }
+            ],
+            community: [
+                { name: 'User Submissions.zip', type: 'file' },
+                { name: 'Gallery Highlights.zip', type: 'file' },
+                { name: 'Featured Creators.zip', type: 'file' }
+            ]
+        };
+
+        document.querySelectorAll('.folder-item').forEach(item => {
+            item.addEventListener('click', () => {
+                document.querySelectorAll('.folder-item').forEach(i => i.classList.remove('selected'));
+                item.classList.add('selected');
+                
+                const folder = item.dataset.folder;
+                const fileList = document.getElementById('fileList');
+                fileList.innerHTML = '';
+                
+                (fileSystem[folder] || []).forEach(file => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    fileItem.innerHTML = `${file.type === 'folder' ? '📁' : '📄'} ${file.name}`;
+                    fileList.appendChild(fileItem);
+                });
+            });
+        });
+
+        // Guestbook
+        function addGuestbookEntry() {
+            const name = document.getElementById('guestName').value || 'Anonymous';
+            const message = document.getElementById('guestMessage').value;
+            
+            if (!message.trim()) return;
+            
+            const entry = document.createElement('div');
+            entry.className = 'guestbook-entry';
+            entry.innerHTML = `<strong>${name}</strong> - ${new Date().toLocaleString()}<br>${message}`;
+            
+            document.getElementById('guestbookEntries').insertBefore(entry, document.getElementById('guestbookEntries').firstChild);
+            
+            document.getElementById('guestName').value = '';
+            document.getElementById('guestMessage').value = '';
+            
+            if (sounds.click) sounds.click();
+        }
+
+        // Initialize system
+        bootSystem();
+
+        // Prevent context menu on video
+        document.addEventListener('contextmenu', (e) => {
+            if (e.target.tagName === 'VIDEO') {
+                e.preventDefault();
+            }
+        });
+    </script>
+</body>
+</html>
